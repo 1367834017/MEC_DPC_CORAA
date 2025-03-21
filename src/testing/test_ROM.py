@@ -83,9 +83,7 @@ def main():
                          hi=hi, pi=500, K=num, ser=server, Di=D[i1] * np.ones(num), Ci=Ci,
                          fi_m=fi_m, fi_l=fi_l))
         energy1[i1, 0] = (-1) * env2[i1].reset(initial)
-    #
-    # data1 = {'Task Data(kbits)': D,
-    #          'Time delay_ROM': time1.flatten().tolist(), 'Energy_ROM': energy1.flatten().tolist()}
+
 
 
     for i2 in range(5):
@@ -97,16 +95,11 @@ def main():
                          hi=hi, pi=500, K=num, ser=server, Di=Di, Ci=C[i2] * np.ones(num),
                          fi_m=fi_m, fi_l=fi_l))
         energy2[i2, 0] = (-1) * env4[i2].reset(initial)
-    # data2 = {'The amount of CPU cycles(megacycles)': C,
-    #          'Time delay_ROM': time2.flatten().tolist(), 'Energy_ROM': energy2.flatten().tolist()}
-    #
-    #
-    # print(data1)
-    # print(data2)
 
 
 
-# main()
+
+
 if __name__ == '__main__':
     main()
 

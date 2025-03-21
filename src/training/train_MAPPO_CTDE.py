@@ -23,49 +23,11 @@ class Env():
         self.fi_m, self.fi_l = fi_m, fi_l
         self.reward = np.zeros(self.K)
         self.done = []
-#注释掉step部分
-# ----------------------------------------------------------------------
+
     def step(self, action):
-        return
-        # self.Di = np.random.uniform(300, 500, self.K)
-        # self.Ci = np.random.uniform(900, 1100, self.K)
-        #
-        # self.done = [False] * self.K
-        # self.state = np.zeros((self.K, 2 * self.ser + 1))
-        # np.clip(action, 0, 1, out=action)
-        # action[np.isnan(action)] = 1
-        # # 拆分 `action_1`
-        # stra, f = np.split(action, [self.ser + 1], axis=1)
-        # stra_sum = np.sum(stra, axis=1, keepdims=True)
-        # f_sum = np.sum(f, axis=0, keepdims=True)
-        # stra /= np.maximum(stra_sum, 1e-6)  # 归一化，避免除零
-        # f /= np.maximum(f_sum, 1e-6)  # 归一化
-        # a = self.pi * 0.001 * self.hi
-        # r_1 = f * self.B * 1e6 * np.log2(1 + (a / self.N0))  # 直接矩阵运算
-        #
-        # # **优化4：批量计算时间 & 能耗**
-        # T1_ij = stra[:, :self.ser] * self.Di[:, None] * 102400 / (1 + r_1)
-        # E1_ij = T1_ij * self.pi * 1e-5
-        #
-        # T2_ij = stra[:, :self.ser] * self.Ci[:, None] * 100 / (self.fi_m * 1000)
-        # E2_ij = stra[:, :self.ser] * self.Ci[:, None] * (self.fi_m ** 2) * 1e-5
-        #
-        # T3 = stra[:, self.ser] * self.Ci * 100 / (self.fi_l * 1000)
-        # E3 = stra[:, self.ser] * self.Ci * (self.fi_l ** 2) * 1e-5
-        #
-        # # **优化5：避免 `max()` 迭代计算，使用 `np.max()`**
-        # T1 = np.max(T1_ij, axis=1)
-        # T2 = np.max(T2_ij, axis=1)
-        #
-        # T = np.maximum(T1 + T2, T3)  # 总时延
-        # E = np.sum(E1_ij + E2_ij, axis=1) + E3  # 总能耗
-        #
-        # # 计算奖励
-        # self.reward_i = -(self.alpha * T + self.beta * E)[:, None]
-        # self.state = action
-        #
-        # return self.state, self.reward_i, self.done, {}
-# ----------------------------------------------------------------------
+        # [RESTRICTED] This function is temporarily disabled due to confidentiality agreements.
+        # Full implementation will be released upon paper acceptance.
+        pass
     def reset(self):
         state, reward, done, _ = self.step(np.random.uniform(0, 1, (self.K, self.ser * 2 + 1)))
         return state
@@ -199,85 +161,10 @@ class MAPPO:
             actions.append(action.detach().cpu().numpy())
         return actions
 
-#注释掉更新过程-----------------------------------------------------------------------------------------
     def update(self, i_agent, n_states):
-        return
-        # for j in range(self.K):
-        #     agent = self.agents[j]
-        #     if agent.replay_buffer.size() >= agent.minimal_size:
-        #         b_s, b_a, b_r, b_ns, b_d = agent.replay_buffer.sample(agent.batch_size)
-        #         agent.transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r,
-        #                                  'dones': b_d}
-        # multi_state = []
-        # multi_action = []
-        # multi_next_state = []
-        # multi_reward = []
-        # multi_done = []
-        # for i in range(self.K):
-        #     state = torch.tensor(self.agents[i].transition_dict['states'],
-        #                          dtype=torch.float).squeeze(1).to(self.device)
-        #     action = torch.tensor(np.array(self.agents[i].transition_dict['actions']), dtype=torch.float).squeeze(1).to(
-        #         self.device)
-        #     next_state = torch.tensor(self.agents[i].transition_dict['next_states'],
-        #                               dtype=torch.float).squeeze(1).to(self.device)
-        #     reward = torch.tensor(np.array(self.agents[i].transition_dict['rewards']),
-        #                           dtype=torch.float).view(-1, 1).to(self.device)
-        #     done = torch.tensor(self.agents[i].transition_dict['dones'],
-        #                         dtype=torch.float).view(-1, 1).to(self.device)
-        #     multi_state.append(state)
-        #     multi_next_state.append(next_state)
-        #     multi_action.append(action)
-        #     multi_reward.append(reward)
-        #     multi_done.append(done)
-        # multi_state = [state for state in multi_state if state.numel() > 0]  # 过滤掉空的张量
-        # multi_next_state = [next_state for next_state in multi_next_state if next_state.numel() > 0]  # 过滤掉空的张量
-        # multi_action = [action for action in multi_action if action.numel() > 0]  # 过滤掉空的张量
-        # multi_reward = [reward for reward in multi_reward if reward.numel() > 0]  # 过滤掉空的张量
-        # multi_done = [done for done in multi_done if done.numel() > 0]  # 过滤掉空的张量
-        # multi_state = torch.stack(multi_state).to(self.device)  # torch.tensor()不能把包含tensor的list转成tensor，纯list就可以转tensor
-        # multi_next_state = torch.stack(multi_next_state).to(self.device)
-        # multi_action = torch.stack(multi_action).to(self.device)
-        # multi_reward = torch.stack(multi_reward).to(self.device)
-        # multi_done = torch.stack(multi_done).to(self.device)
-        # state_t = multi_state.cpu().numpy().transpose(1, 0, 2).reshape(self.batchsize, -1)
-        # multi_state = torch.tensor(state_t, dtype=torch.float).to(self.device)
-        # next_state_t = multi_next_state.cpu().numpy().transpose(1, 0, 2).reshape(self.batchsize, -1)
-        # multi_next_state = torch.tensor(next_state_t, dtype=torch.float).to(self.device)
-        # action_t = multi_action.cpu().numpy().transpose(1, 0, 2).reshape(self.batchsize, -1)
-        # multi_action = torch.tensor(action_t, dtype=torch.float).to(self.device)
-        # rewards = (multi_reward + 8.0) / 8.0
-        # td_target = rewards + self.gamma * self.agents[i_agent].critic(multi_next_state) * (
-        #             1 - multi_done[i_agent,:,:].int())
-        # td_delta = td_target - self.agents[i_agent].critic(multi_state)
-        # advantage = compute_advantage(self.gamma, self.gae_lambda,
-        #                                        td_delta.cpu()).to(self.device)
-        # mu, std = self.agents[i_agent].actor(multi_state[:, i_agent*n_states[i_agent]: (i_agent+1)*n_states[i_agent]])
-        # action_dists = torch.distributions.Normal(mu.detach(), std.detach())
-        # old_log_probs = action_dists.log_prob(multi_action[:, i_agent*n_states[i_agent]: (i_agent+1)*n_states[i_agent]])
-        # entropy_coef = 0.01
-        # for _ in range(self.epochs):
-        #     mu, std = self.agents[i_agent].actor(multi_state[:, i_agent*n_states[i_agent]: (i_agent+1)*n_states[i_agent]])
-        #     action_dists = torch.distributions.Normal(mu, std)
-        #     log_probs = action_dists.log_prob(multi_action[:, i_agent*n_states[i_agent]: (i_agent+1)*n_states[i_agent]])
-        #     ratio = torch.exp(log_probs - old_log_probs)
-        #     surr1 = ratio * advantage
-        #     surr2 = torch.clamp(ratio, 1 - self.eps, 1 + self.eps) * advantage
-        #     actor_loss = torch.mean(-torch.min(surr1, surr2))
-        #     critic_loss = torch.mean(
-        #         F.mse_loss(self.agents[i_agent].critic(multi_state), td_target[i_agent].detach()))
-        #     entropy = action_dists.entropy().mean()
-        #     entropy_coef = max(0.0001, entropy_coef * 0.99)  # 熵系数逐渐减小
-        #     entropy_loss = entropy * entropy_coef
-        #     total_loss = actor_loss + 0.5 * critic_loss - entropy_loss
-        #     self.agents[i_agent].actor_optimizer.zero_grad()
-        #     self.agents[i_agent].critic_optimizer.zero_grad()
-        #     self.loss = total_loss
-        #     total_loss.backward()
-        #     torch.nn.utils.clip_grad_norm_(self.agents[i_agent].actor.parameters(), 0.3)
-        #     torch.nn.utils.clip_grad_norm_(self.agents[i_agent].critic.parameters(), 0.3)
-        #     self.agents[i_agent].actor_optimizer.step()
-        #     self.agents[i_agent].critic_optimizer.step()
-#--------------------------------------------------------------------------------------------------------------
+        # [RESTRICTED] This function is temporarily disabled due to confidentiality agreements.
+        # Full implementation will be released upon paper acceptance.
+        pass
 
     def save(self, path):
         for agt in self.agents:

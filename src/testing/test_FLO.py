@@ -61,9 +61,7 @@ def main():
                             K=num, ser=server, Di=D[i1] * np.ones(num), Ci=Ci,
                             fi_l=fi_l))
         energy1_local[i1, 0] = (-1) * env2[i1].reset()
-    # data1 = {'Task Data(kbits)': D,
-    #          'Time delay_local': time1_local.flatten().tolist(), 'Energy_local': energy1_local.flatten().tolist()}
-    # print(data1)
+
     for i2 in range(5):
 
         env3.append(Env(alpha=1, beta=0,
@@ -74,12 +72,7 @@ def main():
                             K=num, ser=server, Di=Di, Ci=C[i2] * np.ones(num),
                             fi_l=fi_l))
         energy2_local[i2, 0] = (-1) * env4[i2].reset()
-    # data2 = {'The amount of CPU cycles(megacycles)': C,
-    #              'Time delay_Local': time2_local.flatten().tolist(), 'Energy_Local': energy2_local.flatten().tolist()}
-    # print(data2)
 
-
-#main()
 if __name__ == '__main__':
     main()
 

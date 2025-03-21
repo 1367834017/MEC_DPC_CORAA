@@ -16,6 +16,7 @@
 ## Testing Code
 |File Path                                   |Corresponding Figures                 | Description                                                                 |
 |-------------------------------------------|-----------------------------|----------------------------------------------------------------------|
+|`src/testing/test_env.py`                  |                            | Environmental parameters of testing                          |
 | `src/testing/test_FLO.py`                 | Fig4, Fig5                  | Validates performance of FLO baseline                          |
 | `src/testing/test_ROM.py`                 | Fig4, Fig5                  | Validates performance of ROM baseline                                 |
 | `src/testing/test_ABA.py`                 | Fig4, Fig5                  | Validates performance of ABA baseline                                    |

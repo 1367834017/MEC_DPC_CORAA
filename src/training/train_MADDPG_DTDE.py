@@ -47,6 +47,7 @@ parser.add_argument('--max_step', default=1000, type=int)
 parser.add_argument('--gamma', default=0.99, type=int)  # discounted factor
 parser.add_argument('--capacity', default=50000, type=int)  # replay buffer size
 parser.add_argument('--batch_size', default=32, type=int)  # mini batch size
+parser.add_argument('--hidden_dim', default=64, type=int, help='hidden dim')
 parser.add_argument('--exploration_noise', default=0.1, type=float)
 parser.add_argument('--max_episode', default=1000, type=int)  # num of games
 
@@ -195,7 +196,7 @@ def train_agent(agent_id, gpu_id, process, num, server):
         state_dims.append((2 * env.ser + 1))
         action_dims.append(2 * env.ser + 1)
     critic_dim = state_dims[0] + action_dims[0]
-    agents = MADDPG(env, state_dims, action_dims, critic_dim, 64)
+    agents = MADDPG(env, state_dims, action_dims, critic_dim, args.hidden_dim)
     reward_history = []
     start_time = time.time()
     for i in range(args.max_episode):

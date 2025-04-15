@@ -42,12 +42,13 @@ parser.add_argument('--max_step', default=1000, type=int)
 parser.add_argument('--gamma', default=0.99, type=int)  # discounted factor
 parser.add_argument('--capacity', default=50000, type=int)  # replay buffer size
 parser.add_argument('--batch_size', default=32, type=int)  # mini batch size
+parser.add_argument('--hidden_dim', default=64, type=int, help='hidden dim')
 parser.add_argument('--exploration_noise', default=0.1, type=float)
 parser.add_argument('--max_episode', default=1000, type=int)  # num of games
 parser.add_argument('--gae_lambda', default=0.95, type=float, help='GAE lambda')
 parser.add_argument('--policy_clip', default=0.1, type=float, help='policy clip')
 parser.add_argument('--n_epochs', default=15, type=int, help='update number')
-parser.add_argument('--hidden_dim', default=64, type=int, help='hidden dim')
+
 
 args = parser.parse_args()
 class ReplayBuffer:
@@ -108,10 +109,8 @@ class PPOContinuous:
         self.actor = PolicyNetContinuous(state_dim, cfg.hidden_dim,
                                          action_dim).to(device)
         self.critic = ValueNet(critic_dim, cfg.hidden_dim).to(device)
-        self.actor_optimizer = torch.optim.AdamW(self.actor.parameters(),
-                                                lr=1e-4, weight_decay=1e-2)
-        self.critic_optimizer = torch.optim.AdamW(self.critic.parameters(),
-                                                 lr=2e-4, weight_decay=1e-2)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=1e-4)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=2e-4)
         self.replay_buffer = ReplayBuffer(50000)
         self.minimal_size = cfg.batch_size
         self.batch_size = cfg.batch_size

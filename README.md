@@ -1,7 +1,6 @@
 # MEC_DPC_CORAA
 ## Code Availability Notice
 - This repository contains the implementation of the proposed method in the paper "[Distributed multi-agent reinforcement learning approach for multi-server multi-user task offloading]".
-- **Temporary restrictions**: Some functions (marked with `# [RESTRICTED]` in the code) are commented to protect proprietary algorithms. Full code will be released after paper acceptance.
 
 ## Training Code
 | File Path                             | Corresponding Section & Algorithm          | Description                                                              |

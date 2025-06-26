@@ -8,6 +8,8 @@ import torch.optim as optim
 import collections
 import time
 import random
+from partial_commu import DecPOSGPartialCommunication
+
 class Env():
     def __init__(self, alpha, beta, B, N0, hi, pi, K, ser, Di, Ci, fi_m, fi_l):
         """
@@ -25,11 +27,51 @@ class Env():
         self.fi_m, self.fi_l = fi_m, fi_l
         self.reward = np.zeros(self.K)
         self.done = []
+        self.state = np.zeros((self.K, 2 * self.ser + 1))
 
     def step(self, action):
-        # [RESTRICTED] This function is temporarily disabled due to confidentiality agreements.
-        # Full implementation will be released upon paper acceptance.
-        pass
+
+        self.Di = np.random.uniform(300, 500, self.K)
+        self.Ci = np.random.uniform(900, 1100, self.K)
+
+        self.done = [False] * self.K
+
+        np.clip(action, 0, 1, out=action)
+        action[np.isnan(action)] = 1
+        # 拆分 `action_1`
+        stra, f = np.split(action, [self.ser + 1], axis=1)
+        stra_sum = np.sum(stra, axis=1, keepdims=True)
+        f_sum = np.sum(f, axis=0, keepdims=True)
+        stra /= np.maximum(stra_sum, 1e-6)
+        f /= np.maximum(f_sum, 1e-6)
+        a = self.pi * 0.001 * self.hi
+        r_1 = f * self.B * 1e6 * np.log2(1 + (a / self.N0))
+
+
+        T1_ij = stra[:, :self.ser] * self.Di[:, None] * 102400 / (1 + r_1)
+        E1_ij = T1_ij * self.pi * 1e-5
+
+        T2_ij = stra[:, :self.ser] * self.Ci[:, None] * 100 / (self.fi_m * 1000)
+        E2_ij = stra[:, :self.ser] * self.Ci[:, None] * (self.fi_m ** 2) * 1e-5
+
+        T3 = stra[:, self.ser] * self.Ci * 100 / (self.fi_l * 1000)
+        E3 = stra[:, self.ser] * self.Ci * (self.fi_l ** 2) * 1e-5
+
+
+        T1 = np.max(T1_ij, axis=1)
+        T2 = np.max(T2_ij, axis=1)
+
+        T = np.maximum(T1 + T2, T3)
+        E = np.sum(E1_ij + E2_ij, axis=1) + E3
+
+
+        self.reward_i = -(self.alpha * T + self.beta * E)[:, None]
+        comm = DecPOSGPartialCommunication(N=self.K, M=self.ser, action_dim=2 * self.ser + 1,
+                                           observation_space= (2 * self.ser + 1), lambda_step=0.1, k_max=500)
+
+        self.state = comm.update_step(t=0, current_actions=action, current_obs=self.state)
+
+        return self.state, self.reward_i, self.done, {}
 
     def reset(self):
         state, reward, done, _ = self.step(np.random.uniform(0, 1, (self.K, self.ser * 2 + 1)))
@@ -134,9 +176,81 @@ class MADDPG:
         return [agent.select_action(state) for agent, state in zip(self.agents, states)]
 
     def update(self, i_agent):
-        # [RESTRICTED] This function is temporarily disabled due to confidentiality agreements.
-        # Full implementation will be released upon paper acceptance.
-        pass
+
+        cur_agent = self.agents[i_agent]
+        for j in range(self.num):
+            agent = self.agents[j]
+            if agent.replay_buffer.size() >= agent.minimal_size:
+                b_s, b_a, b_r, b_ns, b_d = agent.replay_buffer.sample(agent.batch_size)
+                agent.transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r,
+                                         'dones': b_d}
+        multi_state = []
+        multi_action = []
+        multi_next_state = []
+        multi_reward = []
+        multi_done = []
+        for i in range(self.num):
+            state = torch.tensor(self.agents[i].transition_dict['states'],
+                                 dtype=torch.float).squeeze(1).to(self.device)
+            action = torch.tensor(np.array(self.agents[i].transition_dict['actions']), dtype=torch.float).squeeze(1).to(
+                self.device)
+            next_state = torch.tensor(self.agents[i].transition_dict['next_states'],
+                                      dtype=torch.float).squeeze(1).to(self.device)
+            reward = torch.tensor(np.array(self.agents[i].transition_dict['rewards']),
+                                  dtype=torch.float).view(-1, 1).to(self.device)
+            done = torch.tensor(self.agents[i].transition_dict['dones'],
+                                dtype=torch.float).view(-1, 1).to(self.device)
+            multi_state.append(state)
+            multi_next_state.append(next_state)
+            multi_action.append(action)
+            multi_reward.append(reward)
+            multi_done.append(done)
+        multi_state = [state for state in multi_state if state.numel() > 0]
+        multi_next_state = [next_state for next_state in multi_next_state if next_state.numel() > 0]
+        multi_action = [action for action in multi_action if action.numel() > 0]
+        multi_reward = [reward for reward in multi_reward if reward.numel() > 0]
+        multi_done = [done for done in multi_done if done.numel() > 0]
+        multi_state = torch.stack(multi_state).to(self.device)  # torch.tensor()不能把包含tensor的list转成tensor，纯list就可以转tensor
+        multi_next_state = torch.stack(multi_next_state).to(self.device)
+        multi_action = torch.stack(multi_action).to(self.device)
+        multi_reward = torch.stack(multi_reward).to(self.device)
+        multi_done = torch.stack(multi_done).to(self.device)
+        state_t = multi_state.cpu().numpy().transpose(1, 0, 2)
+        multi_state = torch.tensor(state_t, dtype=torch.float).to(self.device)
+        next_state_t = multi_next_state.cpu().numpy().transpose(1, 0, 2)
+        multi_next_state = torch.tensor(next_state_t, dtype=torch.float).to(self.device)
+        action_t = multi_action.cpu().numpy().transpose(1, 0, 2)
+        multi_action = torch.tensor(action_t, dtype=torch.float).to(self.device)
+
+        # Compute the target Q value
+        target_act = [self.agents[agt].actor_target(multi_next_state[:, agt, :].squeeze(1)) for agt in range(self.num)]
+        target_act = torch.stack(target_act).to(self.device)
+        mns = multi_next_state.reshape(self.batchsize, -1)
+        ta = torch.transpose(target_act, 0, 1).reshape(self.batchsize, -1)
+        target_Q = cur_agent.critic_target(mns, ta)
+        target_Q = multi_reward[i_agent, :, :] + ((1 - multi_done[i_agent, :, :]) * args.gamma * target_Q).detach()  # 若到终止状态，则只算reward
+
+        # Get current Q estimate
+        current_Q = cur_agent.critic(multi_state.reshape(self.batchsize, -1), multi_action.reshape(self.batchsize, -1))
+
+        # Compute critic loss
+        critic_loss = Fun.mse_loss(current_Q, target_Q)
+        cur_agent.critic_optimizer.zero_grad()
+        critic_loss.backward()
+        cur_agent.critic_optimizer.step( )
+        # Compute actor loss
+        poli = []
+        for j in range(self.num):
+            if j == i_agent:
+                poli.append(cur_agent.actor(multi_next_state[:, i_agent, :].squeeze(1)))
+            else:
+                poli.append(multi_action[:, j, :].squeeze(1))
+        poli = torch.stack(poli).to(self.device)
+        actor_loss = -cur_agent.critic(multi_state.reshape(self.batchsize, -1), torch.transpose(poli, 0, 1).reshape(self.batchsize, -1)).mean()
+        # Optimize the actor
+        cur_agent.actor_optimizer.zero_grad()
+        actor_loss.backward()
+        cur_agent.actor_optimizer.step()
     def save(self, path):
         for agt in self.agents:
             torch.save(agt.actor.state_dict(), path)
@@ -212,10 +326,7 @@ def main():
             agent.replay_buffer.clear()
     total_time = time.time() - start_time
 
-    print(f"已分配 GPU 内存: {torch.cuda.memory_allocated(device) / (1024 ** 2):.2f} MB")
-    print(f"GPU 缓存内存: {torch.cuda.memory_reserved(device) / (1024 ** 2):.2f} MB")
-    print(
-        f"Time = {total_time:.2f}s")
+
 
 
 

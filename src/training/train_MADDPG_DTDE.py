@@ -7,7 +7,7 @@ import torch.nn.functional as Fun
 import torch.optim as optim
 import time
 import torch.multiprocessing as mp
-
+from partial_commu import DecPOSGPartialCommunication
 class Env():
     def __init__(self, alpha, beta, B, N0, hi, pi, K, ser, Di, Ci, fi_m, fi_l):
         """
@@ -26,12 +26,49 @@ class Env():
 
         self.reward = np.zeros(self.K)
         self.done = []
-
+        self.state = np.zeros((self.K, self.K * (2 * self.ser + 1)))
 
     def step(self, action):
-        # [RESTRICTED] This function is temporarily disabled due to confidentiality agreements.
-        # Full implementation will be released upon paper acceptance.
-        pass
+        self.Di = np.random.uniform(300, 500, self.K)
+        self.Ci = np.random.uniform(900, 1100, self.K)
+        self.done = [False] * self.K
+
+        np.clip(action, 0, 1, out=action)
+        action[np.isnan(action)] = 1
+        stra, f = np.split(action, [self.ser + 1], axis=1)
+        stra_sum = np.sum(stra, axis=1, keepdims=True)
+        f_sum = np.sum(f, axis=0, keepdims=True)
+        stra /= np.maximum(stra_sum, 1e-6)
+        f /= np.maximum(f_sum, 1e-6)
+        a = self.pi * 0.001 * self.hi
+        r_1 = f * self.B * 1e6 * np.log2(1 + (a / self.N0))
+
+
+        T1_ij = stra[:, :self.ser] * self.Di[:, None] * 102400 / (1 + r_1)
+        E1_ij = T1_ij * self.pi * 1e-5
+
+        T2_ij = stra[:, :self.ser] * self.Ci[:, None] * 100 / (self.fi_m * 1000)
+        E2_ij = stra[:, :self.ser] * self.Ci[:, None] * (self.fi_m ** 2) * 1e-5
+
+        T3 = stra[:, self.ser] * self.Ci * 100 / (self.fi_l * 1000)
+        E3 = stra[:, self.ser] * self.Ci * (self.fi_l ** 2) * 1e-5
+
+
+        T1 = np.max(T1_ij, axis=1)
+        T2 = np.max(T2_ij, axis=1)
+
+        T = np.maximum(T1 + T2, T3)
+        E = np.sum(E1_ij + E2_ij, axis=1) + E3
+
+
+        self.reward_i = -(self.alpha * T + self.beta * E)[:, None]
+        comm = DecPOSGPartialCommunication(N=self.K, M=self.ser, action_dim=2 * self.ser + 1,
+                                           observation_space=self.K * (2 * self.ser + 1), lambda_step=0.1, k_max=500)
+
+        self.state = comm.update_step(t=0, current_actions=action, current_obs=self.state)
+
+
+        return self.state, self.reward_i, self.done, {}
 
     def reset(self):
         state, reward, done, _ = self.step(np.random.uniform(0, 1, (self.K, self.ser * 2 + 1)))
@@ -154,9 +191,35 @@ class MADDPG:
         return actions
 
     def update(self, i_agent):
-        # [RESTRICTED] This function is temporarily disabled due to confidentiality agreements.
-        # Full implementation will be released upon paper acceptance.
-        pass
+        cur_agent = self.agents[i_agent]
+        x, y, u, r, d = cur_agent.replay_buffer.sample(args.batch_size)
+
+        state = torch.FloatTensor(x).to(cur_agent.device)
+        action = torch.FloatTensor(u).to(cur_agent.device)
+        next_state = torch.FloatTensor(y).to(cur_agent.device)
+        done = torch.FloatTensor(d).to(cur_agent.device)
+        reward = torch.FloatTensor(r).to(cur_agent.device)
+        target_act = cur_agent.actor_target(next_state)
+
+        target_Q = cur_agent.critic_target(next_state, target_act)
+        target_Q = reward + (
+                (1 - done) * args.gamma * target_Q).detach()  # 若到终止状态，则只算reward
+
+        # Get current Q estimate
+        current_Q = cur_agent.critic(state, action)
+
+        # Compute critic loss
+        critic_loss = Fun.mse_loss(current_Q, target_Q.detach())
+        cur_agent.critic_optimizer.zero_grad()
+        critic_loss.backward()
+        cur_agent.critic_optimizer.step()
+
+        actor_loss = -cur_agent.critic(state, cur_agent.actor(state)).mean()
+        # Optimize the actor
+        cur_agent.actor_optimizer.zero_grad()
+        actor_loss.backward()
+        cur_agent.actor_optimizer.step()
+
 
     def save(self, path):
         for agt in self.agents:
@@ -230,10 +293,6 @@ def train_agent(agent_id, gpu_id, process, num, server):
 
         reward_history.append(np.average(reward_t))
     total_time = time.time() - start_time
-    print(f"已分配 GPU 内存: {torch.cuda.memory_allocated(device) / (1024 ** 2):.2f} MB")
-    print(f"GPU 缓存内存: {torch.cuda.memory_reserved(device) / (1024 ** 2):.2f} MB")
-    print(
-        f"Time = {total_time:.2f}s")
 
 
 if __name__ == "__main__":

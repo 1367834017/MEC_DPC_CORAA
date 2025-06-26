@@ -1,6 +1,6 @@
 import numpy as np
 import test_env as te
-import train_ABA as py
+from training import train_ABA as py
 
 
 def main(env):

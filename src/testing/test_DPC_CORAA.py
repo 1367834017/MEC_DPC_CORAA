@@ -3,7 +3,7 @@
 import numpy as np
 import random
 import test_env as te
-import train_DPC_CORAA as py
+from training import train_DPC_CORAA as py
 random.seed(10)
 
 

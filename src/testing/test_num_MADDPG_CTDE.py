@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import random
 import test_env as te
-import train_MADDPG_CTDE as py
+from training import train_MADDPG_CTDE as py
 
 random.seed(10)
 

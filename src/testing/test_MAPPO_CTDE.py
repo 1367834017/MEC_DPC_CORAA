@@ -4,7 +4,7 @@ import torch
 
 import random
 import test_env as te
-import train_MAPPO_CTDE as py
+from training import train_MAPPO_CTDE as py
 random.seed(10)
 
 

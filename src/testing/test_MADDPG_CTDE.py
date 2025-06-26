@@ -3,7 +3,7 @@ import numpy as np
 import random
 import torch
 import test_env as te
-import train_MADDPG_CTDE as py
+from training  import train_MADDPG_CTDE as py
 random.seed(10)
 def main(env):
     device = torch.device("cuda:7" if torch.cuda.is_available() else 'cpu')

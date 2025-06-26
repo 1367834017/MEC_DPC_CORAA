@@ -206,8 +206,7 @@ class MADDPG:
 
         target_Q = cur_agent.critic_target(next_state, target_act)
         target_Q = reward + (
-                (1 - done) * args.gamma * target_Q).detach()  # 若到终止状态，则只算reward
-
+                (1 - done) * args.gamma * target_Q).detach()
         # Get current Q estimate
         current_Q = cur_agent.critic(state, action)
 

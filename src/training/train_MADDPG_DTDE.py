@@ -14,7 +14,7 @@ class Env():
         B,N0：Bandwidth and the variance of Gaussian white noise（10MHz=10e6Hz， pow(10, -174 / 10) * 0.001）
         hi, pi: Channel gain, transmission power 0.001 * pow(np.random.uniform(50, 200, num), -3)、500mW=0.5W、100
         K, ser: Number of UDs, number of ESs
-        Di, Ci: Task data size, the required number of CPU cycles (300~500kb) 1024kb=1Mb, (900, 1100)兆周期数 1Mhz = 1000khz = 1000*1000hz
+        Di, Ci: Task data size, the required number of CPU cycles (300~500kb) 1024kb=1Mb, (900, 1100) 1Mhz = 1000khz = 1000*1000hz
         fi_m: Maximum computational capacity of the server 3-7 GHz/s 10e9Hz/s
         fi_l: Local computational capacity 800-1500 MHz
         state System observation
@@ -172,7 +172,7 @@ class MADDPG:
         self.device_list = [f"cuda:{i}" for i in range(self.num_gpus)]
 
         for i in range(env.K):
-            device = torch.device(self.device_list[i % self.num_gpus])  # 轮流分配GPU
+            device = torch.device(self.device_list[i % self.num_gpus])
             self.agents.append(DDPG(state_dims[i], action_dims[i], critic_dim, hidden_dim, device))
 
         self.num = env.K
@@ -203,7 +203,7 @@ class MADDPG:
 
         target_Q = cur_agent.critic_target(next_state, target_act)
         target_Q = reward + (
-                (1 - done) * args.gamma * target_Q).detach()  # 若到终止状态，则只算reward
+                (1 - done) * args.gamma * target_Q).detach()
 
         # Get current Q estimate
         current_Q = cur_agent.critic(state, action)

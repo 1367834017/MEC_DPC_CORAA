@@ -16,7 +16,7 @@ class Env():
         B,N0：Bandwidth and the variance of Gaussian white noise（10MHz=10e6Hz， pow(10, -174 / 10) * 0.001）
         hi, pi: Channel gain, transmission power 0.001 * pow(np.random.uniform(50, 200, num), -3)、500mW=0.5W、100
         K, ser: Number of UDs, number of ESs
-        Di, Ci: Task data size, the required number of CPU cycles (300~500kb) 1024kb=1Mb, (900, 1100)兆周期数 1Mhz = 1000khz = 1000*1000hz
+        Di, Ci: Task data size, the required number of CPU cycles (300~500kb) 1024kb=1Mb, (900, 1100) 1Mhz = 1000khz = 1000*1000hz
         fi_m: Maximum computational capacity of the server 3-7 GHz/s 10e9Hz/s
         fi_l: Local computational capacity 800-1500 MHz
         state System observation
@@ -60,7 +60,7 @@ class Env():
         T = np.maximum(T1 + T2, T3)
         E = np.sum(E1_ij + E2_ij, axis=1) + E3
 
-        # 计算奖励
+
         self.reward_i = -(self.alpha * T + self.beta * E)[:, None]
         self.state[:] = action.reshape(1, -1)
         comm = DecPOSGPartialCommunication(N=self.K, M=self.ser, action_dim=2 * self.ser + 1,
@@ -173,7 +173,7 @@ class MADDPG:
         self.device_list = [f"cuda:{i}" for i in range(self.num_gpus)]
 
         for i in range(env.K):
-            device = torch.device(self.device_list[i % self.num_gpus])  # 轮流分配GPU
+            device = torch.device(self.device_list[i % self.num_gpus])
             self.agents.append(DDPG(state_dims[i], action_dims[i], critic_dim, hidden_dim, device))
 
         self.num = env.K
@@ -295,10 +295,7 @@ def train_agent(agent_id, gpu_id, process, num, server):
 
         reward_history.append(np.average(reward_t))
     total_time = time.time() - start_time
-    print(f"已分配 GPU 内存: {torch.cuda.memory_allocated(device) / (1024 ** 2):.2f} MB")
-    print(f"GPU 缓存内存: {torch.cuda.memory_reserved(device) / (1024 ** 2):.2f} MB")
-    print(
-        f"Time = {total_time:.2f}s")
+
 
 
 if __name__ == "__main__":

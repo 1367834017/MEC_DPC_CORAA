@@ -14,7 +14,7 @@ class Env():
         B,N0：Bandwidth and the variance of Gaussian white noise（10MHz=10e6Hz， pow(10, -174 / 10) * 0.001）
         hi, pi: Channel gain, transmission power 0.001 * pow(np.random.uniform(50, 200, num), -3)、500mW=0.5W、100
         K, ser: Number of UDs, number of ESs
-        Di, Ci: Task data size, the required number of CPU cycles (300~500kb) 1024kb=1Mb, (900, 1100)兆周期数 1Mhz = 1000khz = 1000*1000hz
+        Di, Ci: Task data size, the required number of CPU cycles (300~500kb) 1024kb=1Mb, (900, 1100) 1Mhz = 1000khz = 1000*1000hz
         fi_m: Maximum computational capacity of the server 3-7 GHz/s 10e9Hz/s
         fi_l: Local computational capacity 800-1500 MHz
         state System observation
@@ -136,7 +136,7 @@ class PolicyNetContinuous(torch.nn.Module):
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        mu = F.softplus(self.fc_mu(x)) + 1e-6  # 输出均值
+        mu = F.softplus(self.fc_mu(x)) + 1e-6
         std = F.softplus(self.fc_std(x)) + 1e-6
         mu = torch.nan_to_num(mu, nan=1.0, posinf=1.0, neginf=1.0)
         std = torch.nan_to_num(std, nan=1.0, posinf=1.0, neginf=1.0)
@@ -228,12 +228,12 @@ class MAPPO:
             multi_action.append(action)
             multi_reward.append(reward)
             multi_done.append(done)
-        multi_state = [state for state in multi_state if state.numel() > 0]  # 过滤掉空的张量
-        multi_next_state = [next_state for next_state in multi_next_state if next_state.numel() > 0]  # 过滤掉空的张量
-        multi_action = [action for action in multi_action if action.numel() > 0]  # 过滤掉空的张量
-        multi_reward = [reward for reward in multi_reward if reward.numel() > 0]  # 过滤掉空的张量
-        multi_done = [done for done in multi_done if done.numel() > 0]  # 过滤掉空的张量
-        multi_state = torch.stack(multi_state).to(self.device)  # torch.tensor()不能把包含tensor的list转成tensor，纯list就可以转tensor
+        multi_state = [state for state in multi_state if state.numel() > 0]
+        multi_next_state = [next_state for next_state in multi_next_state if next_state.numel() > 0]
+        multi_action = [action for action in multi_action if action.numel() > 0]
+        multi_reward = [reward for reward in multi_reward if reward.numel() > 0]
+        multi_done = [done for done in multi_done if done.numel() > 0]
+        multi_state = torch.stack(multi_state).to(self.device)
         multi_next_state = torch.stack(multi_next_state).to(self.device)
         multi_action = torch.stack(multi_action).to(self.device)
         multi_reward = torch.stack(multi_reward).to(self.device)
@@ -269,7 +269,7 @@ class MAPPO:
             critic_loss = torch.mean(
                 F.mse_loss(self.agents[i_agent].critic(multi_state), td_target[i_agent].detach()))
             entropy = action_dists.entropy().mean()
-            entropy_coef = max(0.0001, entropy_coef * 0.99)  # 熵系数逐渐减小
+            entropy_coef = max(0.0001, entropy_coef * 0.99)
             entropy_loss = entropy * entropy_coef
             total_loss = actor_loss + 0.5 * critic_loss - entropy_loss
             self.agents[i_agent].actor_optimizer.zero_grad()

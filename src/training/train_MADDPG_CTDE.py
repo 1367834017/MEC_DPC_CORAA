@@ -16,7 +16,7 @@ class Env():
         B,N0：Bandwidth and the variance of Gaussian white noise（10MHz=10e6Hz， pow(10, -174 / 10) * 0.001）
         hi, pi: Channel gain, transmission power 0.001 * pow(np.random.uniform(50, 200, num), -3)、500mW=0.5W、100
         K, ser: Number of UDs, number of ESs
-        Di, Ci: Task data size, the required number of CPU cycles (300~500kb) 1024kb=1Mb, (900, 1100)兆周期数 1Mhz = 1000khz = 1000*1000hz
+        Di, Ci: Task data size, the required number of CPU cycles (300~500kb) 1024kb=1Mb, (900, 1100) 1Mhz = 1000khz = 1000*1000hz
         fi_m: Maximum computational capacity of the server 3-7 GHz/s 10e9Hz/s
         fi_l: Local computational capacity 800-1500 MHz
         state System observation
@@ -38,7 +38,7 @@ class Env():
 
         np.clip(action, 0, 1, out=action)
         action[np.isnan(action)] = 1
-        # 拆分 `action_1`
+
         stra, f = np.split(action, [self.ser + 1], axis=1)
         stra_sum = np.sum(stra, axis=1, keepdims=True)
         f_sum = np.sum(f, axis=0, keepdims=True)
@@ -210,7 +210,7 @@ class MADDPG:
         multi_action = [action for action in multi_action if action.numel() > 0]
         multi_reward = [reward for reward in multi_reward if reward.numel() > 0]
         multi_done = [done for done in multi_done if done.numel() > 0]
-        multi_state = torch.stack(multi_state).to(self.device)  # torch.tensor()不能把包含tensor的list转成tensor，纯list就可以转tensor
+        multi_state = torch.stack(multi_state).to(self.device)
         multi_next_state = torch.stack(multi_next_state).to(self.device)
         multi_action = torch.stack(multi_action).to(self.device)
         multi_reward = torch.stack(multi_reward).to(self.device)
@@ -228,7 +228,7 @@ class MADDPG:
         mns = multi_next_state.reshape(self.batchsize, -1)
         ta = torch.transpose(target_act, 0, 1).reshape(self.batchsize, -1)
         target_Q = cur_agent.critic_target(mns, ta)
-        target_Q = multi_reward[i_agent, :, :] + ((1 - multi_done[i_agent, :, :]) * args.gamma * target_Q).detach()  # 若到终止状态，则只算reward
+        target_Q = multi_reward[i_agent, :, :] + ((1 - multi_done[i_agent, :, :]) * args.gamma * target_Q).detach()
 
         # Get current Q estimate
         current_Q = cur_agent.critic(multi_state.reshape(self.batchsize, -1), multi_action.reshape(self.batchsize, -1))
